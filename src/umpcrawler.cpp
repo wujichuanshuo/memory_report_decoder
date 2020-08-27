@@ -1,4 +1,6 @@
-﻿#include "umpcrawler.h"
+﻿#pragma once
+
+#include "umpcrawler.h"
 
 //#include <QTime>
 //#include <QDebug>
@@ -9,19 +11,10 @@
 #include <codecvt>
 #include <locale>
 
+#include <fstream>
 static bool first = true;
 
 #if _MSC_VER >= 1900
-
-struct Il2CppManagedMemorySnapshot
-{
-	Il2CppManagedHeap heap;
-	Il2CppStacks stacks;
-	Il2CppMetadataSnapshot metadata;
-	Il2CppGCHandles gcHandles;
-	Il2CppRuntimeInformation runtimeInformation;
-	void* additionalUserInformation;
-};
 
 std::string utf16_to_utf8(std::u16string utf16_string)
 {
@@ -668,8 +661,6 @@ public:
 		snapShot_ = snapShot;
 	}
 
-	void SetExecutablePath(const QString& str) { execPath_ = str; }
-
 	bool DecodeData(const char* data, size_t size, bool isBigEndian);
 
 
@@ -779,8 +770,6 @@ bool RemoteProcess::DecodeData(const char* data, size_t size, bool isBigEndian) 
 class Windows
 {
 public:
-	Windows();
-	~Windows();
 	int LoadFromFile(std::string filepath);
 private:
 	void Windows::CleanWorkSpace();
@@ -791,28 +780,32 @@ private:
 	RemoteProcess *remoteProcess_;
 
 };
-Windows::Windows()
-{
-}
 
 
-Windows::~Windows()
-{
-}
 
 int Windows::LoadFromFile(std::string filepath) {
-	QDataStream stream(file);
-	bool isRawFile = file->fileName().endsWith(".rawsnapshot");
-	if (!isRawFile) {
-		return -1;
+	bool isRawFile = 1;
+	if (filepath.find(".rawsnapshot")<0) {
+		std::cout << "This is fail path!";
+		isRawFile = 0;
+		return 0;
 	}
-	CleanWorkSpace();
+	//std::cout << "True" << std::endl;
+	std::ifstream f(filepath , std::ios::binary | std::ios::in);
+	if (!f) {
+		return 0;
+	}
 	if (isRawFile) {
-		file->open(QIODevice::WriteOnly);
-		unsigned char* snapshot = file->map(0, file->size());
-		remoteProcess_->DecodeData((char*)snapshot, file->size(), false);
-		file->unmap(snapshot);
-		file->close();
+		unsigned char a;
+		std::string tmp = "";
+		while (f.read((char *)&a , sizeof(a))) {
+			tmp +=  a;
+		}
+		unsigned char* file = (unsigned char*)tmp.c_str();
+		unsigned char* snapshot = file;
+		remoteProcess_->DecodeData((char*)snapshot, tmp.size(), false);
+		tmp.clear();
+		f.close();
 		RemoteDataReceived();
 	}
 
@@ -829,8 +822,17 @@ void Windows::RemoteDataReceived() {
 	auto crawled = new CrawledMemorySnapshot();
 	crawled->Unpack(*crawled, snapshot, *packedCrawlerData);
 	delete packedCrawlerData;
-
-	crawled->name_ = "Snapshot_" + QTime::currentTime().toString("H_m_s");
+	time_t tt = time(NULL);
+	tm* t = localtime(&tt);
+	printf("%d-%02d-%02d %02d:%02d:%02d\n",
+		t->tm_year + 1900,
+		t->tm_mon + 1,
+		t->tm_mday,
+		t->tm_hour,
+		t->tm_min,
+		t->tm_sec);
+	std::string time = std::string(std::to_string(t->tm_hour) + std::to_string(t->tm_min) + std::to_string(t->tm_sec));
+	crawled->name_ = "Snapshot_" + time;
 	
 	std::cout<<("Snapshot Received And Unpacked.");
 }
