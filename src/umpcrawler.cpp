@@ -1,6 +1,8 @@
-﻿#pragma once
+﻿
 
 #include "umpcrawler.h"
+
+
 
 //#include <QTime>
 //#include <QDebug>
@@ -645,37 +647,10 @@ void Il2CppFreeMemorySnapshot(Il2CppManagedMemorySnapshot* snapshot) {
 	}
 }
 
-class RemoteProcess {
-public:
-	RemoteProcess();
-	~RemoteProcess();
 
-	void ConnectToServer(int port);
-	void Disconnect();
-	bool IsConnecting() const { return connectingServer_; }
-	bool IsConnected() const { return serverConnected_; }
-
-	const Il2CppManagedMemorySnapshot* GetSnapShot() const { return snapShot_; }
-	Il2CppManagedMemorySnapshot* GetSnapShot() { return snapShot_; }
-	void SetSnapShot(Il2CppManagedMemorySnapshot* snapShot) {
-		snapShot_ = snapShot;
-	}
-
-	bool DecodeData(const char* data, size_t size, bool isBigEndian);
-
-
-private:
-	void OnDataReceived();
-	void OnConnected();
-	void OnDisconnected();
-
-private:
-	bool connectingServer_ = false;
-	bool serverConnected_ = false;
-	char* buffer_ = nullptr;
-	char* compressBuffer_ = nullptr;
-	Il2CppManagedMemorySnapshot *snapShot_ = nullptr;
-};
+RemoteProcess::RemoteProcess() {
+	snapShot_ = new Il2CppManagedMemorySnapshot();
+}
 
 bool RemoteProcess::DecodeData(const char* data, size_t size, bool isBigEndian) {
 	Il2CppFreeMemorySnapshot(snapShot_);
@@ -767,22 +742,6 @@ bool RemoteProcess::DecodeData(const char* data, size_t size, bool isBigEndian) 
 
 
 
-class Windows
-{
-public:
-	int LoadFromFile(std::string filepath);
-private:
-	void Windows::CleanWorkSpace();
-	void Windows::RemoteDataReceived();
-	void Windows::ShowSnapshot(CrawledMemorySnapshot* crawled);
-private:
-	int remoteRetryCount_ = 0;
-	RemoteProcess *remoteProcess_;
-
-};
-
-
-
 int Windows::LoadFromFile(std::string filepath) {
 	bool isRawFile = 1;
 	if (filepath.find(".rawsnapshot")<0) {
@@ -790,12 +749,13 @@ int Windows::LoadFromFile(std::string filepath) {
 		isRawFile = 0;
 		return 0;
 	}
-	//std::cout << "True" << std::endl;
+	std::cout << "True" << std::endl;
 	std::ifstream f(filepath , std::ios::binary | std::ios::in);
 	if (!f) {
 		return 0;
 	}
 	if (isRawFile) {
+		std::cout << "123" << std::endl;
 		unsigned char a;
 		std::string tmp = "";
 		while (f.read((char *)&a , sizeof(a))) {
@@ -803,6 +763,7 @@ int Windows::LoadFromFile(std::string filepath) {
 		}
 		unsigned char* file = (unsigned char*)tmp.c_str();
 		unsigned char* snapshot = file;
+		std::cout << "456" << std::endl;
 		remoteProcess_->DecodeData((char*)snapshot, tmp.size(), false);
 		tmp.clear();
 		f.close();
@@ -837,4 +798,7 @@ void Windows::RemoteDataReceived() {
 	std::cout<<("Snapshot Received And Unpacked.");
 }
 
+Windows::Windows(){
+	remoteProcess_ = new RemoteProcess();
+}
 

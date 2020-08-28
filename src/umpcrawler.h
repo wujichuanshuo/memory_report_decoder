@@ -283,4 +283,34 @@ private:
     const CrawledMemorySnapshot* snapshot_;
 };
 
+class RemoteProcess {
+public:
+	RemoteProcess();
+	~RemoteProcess();
+
+	const Il2CppManagedMemorySnapshot* GetSnapShot() const { return snapShot_; }
+	Il2CppManagedMemorySnapshot* GetSnapShot() { return snapShot_; }
+	void SetSnapShot(Il2CppManagedMemorySnapshot* snapShot) {
+		snapShot_ = snapShot;
+	}
+
+	bool DecodeData(const char* data, size_t size, bool isBigEndian);
+
+private:
+	Il2CppManagedMemorySnapshot *snapShot_ = nullptr;
+};
+
+class Windows
+{
+public:
+	int LoadFromFile(std::string filepath);
+	Windows();
+private:
+	void Windows::RemoteDataReceived();
+private:
+	int remoteRetryCount_ = 0;
+	RemoteProcess *remoteProcess_;
+
+};
+
 #endif // UMPCRAWLER_H

@@ -11,6 +11,7 @@ endif (MSVC)
 add_executable(memory_report_decoder 
     src/main.cpp 
     src/umpcrawler.cpp
+    #src/Windows.cpp
 )
 
 #include_directories(${FFMPEG_INCLUDE_DIRS} ${SDL2_INCLUDE_DIRS})
