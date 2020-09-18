@@ -6,7 +6,8 @@
 
 #include <cstdint>
 #include <vector>
-#include<string>
+#include <string>
+#include <stack>
 #include <unordered_map>
 
 #include "umpmemory.h"
@@ -102,21 +103,43 @@ struct BytesAndOffset {
     }
 };
 
+struct one
+{
+	Il2CppManagedMemorySnapshot* snapshot;
+	StartIndices startIndices;
+	BytesAndOffset bytesAndOffset;
+	Il2CppMetadataType* typeDescription;
+	bool useStaticFields;
+	std::uint32_t indexOfFrom;
+	std::vector<Connection>* outConnections;
+	std::vector<PackedManagedObject>* outManagedObjects;
+	bool isArrayElement;
+
+	int flag = -1;
+
+	std::uint64_t pointer;
+	void* refPtr;
+	bool scanMemory;
+};
+
+
+
+
 class Crawler {
 public:
-    void Crawl(PackedCrawlerData& result, Il2CppManagedMemorySnapshot* snapshot);
-    void CrawlPointer(Il2CppManagedMemorySnapshot* snapshot, StartIndices startIndices, std::uint64_t pointer, std::uint32_t indexOfFrom,
-                      std::vector<Connection>& oConnections, std::vector<PackedManagedObject>& outManagedObjects, void* refPtr, bool scanMemory);
-    void ParseObjectHeader(StartIndices& startIndices, Il2CppManagedMemorySnapshot* snapshot, std::uint64_t originalHeapAddress, std::uint64_t& typeInfoAddress,
-                           std::uint32_t& indexOfObject, bool& wasAlreadyCrawled, std::vector<PackedManagedObject>& outManagedObjects, void* refPtr, bool scanMemory);
+	void Crawl(PackedCrawlerData& result, Il2CppManagedMemorySnapshot* snapshot);
+	void CrawlPointer(Il2CppManagedMemorySnapshot* snapshot, StartIndices startIndices, std::uint64_t pointer, std::uint32_t indexOfFrom,
+		std::vector<Connection>* outConnections, std::vector<PackedManagedObject>* outManagedObjects, void* refPtr, bool scanMemory, std::stack<one>* st);
+	void ParseObjectHeader(StartIndices& startIndices, Il2CppManagedMemorySnapshot* snapshot, std::uint64_t originalHeapAddress, std::uint64_t& typeInfoAddress,
+		std::uint32_t& indexOfObject, bool& wasAlreadyCrawled, std::vector<PackedManagedObject>& outManagedObjects, void* refPtr, bool scanMemory);
 	void FindObjectInHeap(Il2CppManagedMemorySnapshot* snapshot, std::uint64_t originalHeapAddress);
-    void CrawlRawObjectData(Il2CppManagedMemorySnapshot* packedMemorySnapshot, StartIndices startIndices, BytesAndOffset bytesAndOffset,
-                            Il2CppMetadataType* typeDescription, bool useStaticFields, std::uint32_t indexOfFrom,
-                            std::vector<Connection>& out_connections, std::vector<PackedManagedObject>& out_managedObjects, bool isArrayElement);
-    int SizeOfObjectInBytes(Il2CppMetadataType* typeDescription, BytesAndOffset bo, Il2CppManagedMemorySnapshot* snapshot, std::uint64_t address);
+	void CrawlRawObjectData(Il2CppManagedMemorySnapshot* snapshot, StartIndices startIndices, BytesAndOffset bytesAndOffset,
+		Il2CppMetadataType* typeDescription, bool useStaticFields, std::uint32_t indexOfFrom,
+		std::vector<Connection>* outConnections, std::vector<PackedManagedObject>* outManagedObjects, bool isArrayElement, std::stack<one>* st);
+	int SizeOfObjectInBytes(Il2CppMetadataType* typeDescription, BytesAndOffset bo, Il2CppManagedMemorySnapshot* snapshot, std::uint64_t address);
 private:
-    std::unordered_map<std::uint64_t, Il2CppMetadataType*> typeInfoToTypeDescription_;
-    std::vector<Il2CppMetadataType*> typeDescriptions_;
+	std::unordered_map<std::uint64_t, Il2CppMetadataType*> typeInfoToTypeDescription_;
+	std::vector<Il2CppMetadataType*> typeDescriptions_;
 };
 
 struct FieldDescription {
@@ -186,6 +209,7 @@ enum class ThingType {
 struct ThingInMemory {
     std::uint32_t index_{0};
     std::int64_t size_{0};
+	std::int32_t number=0;
     CrawledDiffFlags diff_ = CrawledDiffFlags::kNone;
     std::string caption_{};
     std::vector<ThingInMemory*> references_{};
@@ -199,6 +223,13 @@ struct ThingInMemory {
     }
     virtual ~ThingInMemory() = default;
     virtual ThingType type() const { return ThingType::NONE; }
+};
+
+struct UMPSnapshotType {
+	std::string name_;
+	TypeDescription *type_;
+	std::vector <ThingInMemory * > objects_;
+	std::int64_t size_ = 0;
 };
 
 struct ManagedObject : public ThingInMemory {
@@ -303,10 +334,11 @@ private:
 class Windows
 {
 public:
-	int LoadFromFile(std::string filepath);
+	int LoadFromFile(std::string filepath, std::string path);
 	Windows();
 private:
 	void Windows::RemoteDataReceived();
+	void ShowSnapshot(CrawledMemorySnapshot * crawled);
 private:
 	int remoteRetryCount_ = 0;
 	RemoteProcess *remoteProcess_;
