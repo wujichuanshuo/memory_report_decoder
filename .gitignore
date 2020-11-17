@@ -1,12 +1,6 @@
-# Project exclude paths
+/.idea/
+/.vs/
+/build/
 /cmake-build-debug/
-/b
-/build
-/.vs
-/src/.vs
-memory_report_decoder/cmake-build-debug/
-memory_report_decoder/b
-memory_report_decoder/build
-memory_report_decoder/.vs
-memory_report_decoder/src/.vs
-memory_report_decoder/src/.idea
+/src/.vs/
+/.idea/
